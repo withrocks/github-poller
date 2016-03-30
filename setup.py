@@ -3,7 +3,7 @@ Polls github for changes to a repo
 """
 from setuptools import find_packages, setup
 
-dependencies = ['click']
+dependencies = ['click', 'requests[security]']
 
 setup(
     name='github-poller',

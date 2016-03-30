@@ -1,21 +1,11 @@
 # github-poller
 
-Polls github for changes to a repo
+Polls github for changes to a repo, running a command on each change.
 
+Example:
 
-# Installation
+To poll for changes to this repo's master branch every 5 seconds, and run
+pip install when it happens:
 
-If you don't use `pipsi`, you're missing out.
-Here are [installation instructions](https://github.com/mitsuhiko/pipsi#readme).
-
-Simply run:
-
-    $ pipsi install .
-
-
-# Usage
-
-To use it:
-
-    $ github-poller --help
+    $ github-poller withrocks github-poller master 5 'pip install -U git+https://github.com/withrocks/github-poller.git@master'
 
