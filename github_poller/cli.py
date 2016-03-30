@@ -4,6 +4,7 @@ import os
 import time
 import logging
 import json
+from requests.auth import HTTPBasicAuth
 
 logger = logging.getLogger(__name__)
 STATE_FILE = ".github-poller"
@@ -27,24 +28,44 @@ def read_state():
 @click.argument('branch')
 @click.argument('interval', type=int)
 @click.argument('command')
+@click.option('--oauth-user')
+@click.option('--oauth-token')
 @click.option('--level', default="WARN")
-def main(user, repo, branch, interval, command, level):
-    """Polls github for changes to a repo. Runs the supplied command on change."""
+def main(user, repo, branch, interval, command, oauth_user, oauth_token, level):
+    """
+    Polls github for changes to a repo. Runs the supplied command on change.
 
+    Note that webhooks are probably better if you are able to
+    listen on a publicly accessible server.
+
+    The request limit is constrained for unauthorized tokens (currently 60 reqs/hour).
+    Create an oauth token and use with client_id/client_secret to increase it to 5.000 reqs/hour.
+    """
+    # TODO: Use conditonal requests (https://developer.github.com/v3/)
     MIN_INTERVAL = 1
+    RATE_LIMIT_UNAUTH = 60
+    RATE_LIMIT_AUTH = 5000
 
     logging.basicConfig(level=level)
 
     if interval < MIN_INTERVAL:
         raise ValueError("Interval must be higher than {}".format(MIN_INTERVAL))
 
+    auth = HTTPBasicAuth(oauth_user, oauth_token) if oauth_user and oauth_token else None
+
+    # TODO:
+    # rate_limit = RATE_LIMIT_UNAUTH if not token else RATE_LIMIT_AUTH
+    # logger.warn("Poll rate may exceed the default rate limit")
+
     last_sha = read_state()
 
+    url = "https://api.github.com/repos/{}/{}/branches/{}" \
+            .format(user, repo, branch)
+
     while True:
-        url = "https://api.github.com/repos/{}/{}/branches/{}".format(user, repo, branch)
-        response = requests.get(url)
+        response = requests.get(url, auth=auth)
         if response.status_code != 200:
-            logger.warn("Status code wasn't 200 ({}), ignoring"
+            logger.warn("Status code {} != 200. Ignoring"
                     .format(response.status_code))
         else:
             response_obj = response.json()
